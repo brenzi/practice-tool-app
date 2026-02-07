@@ -1,0 +1,30 @@
+const _noteNames = [
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+];
+
+String midiNoteToName(int midiNote) {
+  final name = _noteNames[midiNote % 12];
+  final octave = (midiNote ~/ 12) - 1;
+  return '$name$octave';
+}
+
+int noteNameToMidi(String name) {
+  final match = RegExp(r'^([A-G]#?)(-?\d+)$').firstMatch(name);
+  if (match == null) throw ArgumentError('Invalid note name: $name');
+  final noteName = match.group(1)!;
+  final octave = int.parse(match.group(2)!);
+  final noteIndex = _noteNames.indexOf(noteName);
+  if (noteIndex == -1) throw ArgumentError('Invalid note name: $name');
+  return (octave + 1) * 12 + noteIndex;
+}
