@@ -10,6 +10,7 @@ class AudioService {
   static const _pianoChannel = 0;
   static const _clickChannel = 1;
   static const _clickKey = 76; // woodblock
+  static const _clickDurationMs = 50;
 
   Future<void> init() async {
     _sfId = await _midi.loadSoundfontAsset(
@@ -28,29 +29,48 @@ class AudioService {
       bank: 0,
       program: 0,
     );
+
+    await _midi.createSequencer(sfId: _sfId);
   }
 
-  Future<void> playPianoNote(int key) => _midi.playNote(
-    channel: _pianoChannel,
-    key: key,
-    velocity: 100,
-    sfId: _sfId,
-  );
+  Future<int> getCurrentTick() => _midi.getSequencerTick(sfId: _sfId);
 
-  Future<void> stopPianoNote(int key) =>
-      _midi.stopNote(channel: _pianoChannel, key: key, sfId: _sfId);
+  Future<void> scheduleNote(int tick, int midiNote, int durationMs) async {
+    await _midi.scheduleNoteOn(
+      sfId: _sfId,
+      tick: tick,
+      channel: _pianoChannel,
+      key: midiNote,
+      velocity: 100,
+    );
+    await _midi.scheduleNoteOff(
+      sfId: _sfId,
+      tick: tick + durationMs,
+      channel: _pianoChannel,
+      key: midiNote,
+    );
+  }
 
-  Future<void> playClick() => _midi.playNote(
-    channel: _clickChannel,
-    key: _clickKey,
-    velocity: 100,
-    sfId: _sfId,
-  );
-
-  Future<void> stopClick() =>
-      _midi.stopNote(channel: _clickChannel, key: _clickKey, sfId: _sfId);
+  Future<void> scheduleClick(int tick) async {
+    await _midi.scheduleNoteOn(
+      sfId: _sfId,
+      tick: tick,
+      channel: _clickChannel,
+      key: _clickKey,
+      velocity: 100,
+    );
+    await _midi.scheduleNoteOff(
+      sfId: _sfId,
+      tick: tick + _clickDurationMs,
+      channel: _clickChannel,
+      key: _clickKey,
+    );
+  }
 
   Future<void> stopAllNotes() => _midi.stopAllNotes(sfId: _sfId);
 
-  Future<void> dispose() => _midi.dispose();
+  Future<void> dispose() async {
+    await _midi.deleteSequencer(sfId: _sfId);
+    await _midi.dispose();
+  }
 }

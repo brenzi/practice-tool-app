@@ -12,13 +12,11 @@ class FakeAudioService extends AudioService {
   @override
   Future<void> init() async {}
   @override
-  Future<void> playPianoNote(int key) async {}
+  Future<int> getCurrentTick() async => 0;
   @override
-  Future<void> stopPianoNote(int key) async {}
+  Future<void> scheduleNote(int tick, int midiNote, int durationMs) async {}
   @override
-  Future<void> playClick() async {}
-  @override
-  Future<void> stopClick() async {}
+  Future<void> scheduleClick(int tick) async {}
   @override
   Future<void> stopAllNotes() async {}
   @override

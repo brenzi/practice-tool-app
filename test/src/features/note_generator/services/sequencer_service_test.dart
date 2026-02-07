@@ -5,31 +5,30 @@ import 'package:jazz_practice_tools/src/features/note_generator/services/sequenc
 class MockAudioService extends AudioService {
   MockAudioService() : super(midiPro: null);
 
-  final playedPianoNotes = <int>[];
-  final stoppedPianoNotes = <int>[];
-  int clickCount = 0;
+  int currentTick = 0;
+  final scheduledNotes = <({int tick, int midiNote, int durationMs})>[];
+  final scheduledClicks = <int>[];
   bool stopAllCalled = false;
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> playPianoNote(int key) async {
-    playedPianoNotes.add(key);
+  Future<int> getCurrentTick() async => currentTick;
+
+  @override
+  Future<void> scheduleNote(int tick, int midiNote, int durationMs) async {
+    scheduledNotes.add((
+      tick: tick,
+      midiNote: midiNote,
+      durationMs: durationMs,
+    ));
   }
 
   @override
-  Future<void> stopPianoNote(int key) async {
-    stoppedPianoNotes.add(key);
+  Future<void> scheduleClick(int tick) async {
+    scheduledClicks.add(tick);
   }
-
-  @override
-  Future<void> playClick() async {
-    clickCount++;
-  }
-
-  @override
-  Future<void> stopClick() async {}
 
   @override
   Future<void> stopAllNotes() async {
@@ -50,16 +49,47 @@ void main() {
   });
 
   group('scheduling logic', () {
-    test('start triggers immediate beat', () async {
+    test('start triggers immediate scheduling', () async {
       sequencer.bpm = 120;
       sequencer.beatsPerNote = 2;
+      mockAudio.currentTick = 0;
 
       await sequencer.start();
       await sequencer.stop();
 
-      // First beat should fire immediately on start
-      expect(mockAudio.clickCount, greaterThan(0));
-      expect(mockAudio.playedPianoNotes, isNotEmpty);
+      // First tick should schedule beats within lookahead window
+      expect(mockAudio.scheduledClicks, isNotEmpty);
+      expect(mockAudio.scheduledNotes, isNotEmpty);
+    });
+
+    test('schedules beats within lookahead window', () async {
+      sequencer.bpm = 120; // 500ms per beat
+      sequencer.beatsPerNote = 4;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      // At 120 BPM, beat interval is 500ms. Lookahead is 200ms.
+      // So only beat at tick 0 should be scheduled (next at 500 > 200).
+      expect(mockAudio.scheduledClicks, equals([0]));
+      expect(mockAudio.scheduledNotes.length, 1);
+      expect(mockAudio.scheduledNotes.first.tick, 0);
+    });
+
+    test('schedules multiple beats when interval is short', () async {
+      sequencer.bpm = 600; // 100ms per beat
+      sequencer.beatsPerNote = 4;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      // At 600 BPM, beat interval is 100ms. Lookahead is 200ms.
+      // Beats at 0, 100, 200 should be scheduled.
+      expect(mockAudio.scheduledClicks, equals([0, 100, 200]));
+      // Piano note only on beat 0 (beatInMeasure == 0)
+      expect(mockAudio.scheduledNotes.length, 1);
     });
 
     test('random notes are within range', () async {
@@ -67,39 +97,43 @@ void main() {
       sequencer.beatsPerNote = 1;
       sequencer.rangeLow = 60;
       sequencer.rangeHigh = 72;
+      mockAudio.currentTick = 0;
 
       await sequencer.start();
       await sequencer.stop();
 
-      for (final note in mockAudio.playedPianoNotes) {
-        expect(note, greaterThanOrEqualTo(60));
-        expect(note, lessThanOrEqualTo(72));
+      for (final note in mockAudio.scheduledNotes) {
+        expect(note.midiNote, greaterThanOrEqualTo(60));
+        expect(note.midiNote, lessThanOrEqualTo(72));
       }
     });
 
-    test('piano disabled means no notes played', () async {
+    test('piano disabled means no notes scheduled', () async {
       sequencer.bpm = 600;
       sequencer.beatsPerNote = 1;
       sequencer.pianoEnabled = false;
+      mockAudio.currentTick = 0;
 
       await sequencer.start();
       await sequencer.stop();
 
-      expect(mockAudio.playedPianoNotes, isEmpty);
+      expect(mockAudio.scheduledNotes, isEmpty);
     });
 
-    test('metronome disabled means no clicks played', () async {
+    test('metronome disabled means no clicks scheduled', () async {
       sequencer.bpm = 600;
       sequencer.beatsPerNote = 1;
       sequencer.metronomeEnabled = false;
+      mockAudio.currentTick = 0;
 
       await sequencer.start();
       await sequencer.stop();
 
-      expect(mockAudio.clickCount, 0);
+      expect(mockAudio.scheduledClicks, isEmpty);
     });
 
     test('stop calls stopAllNotes', () async {
+      mockAudio.currentTick = 0;
       await sequencer.start();
       await sequencer.stop();
       expect(mockAudio.stopAllCalled, isTrue);
@@ -108,6 +142,7 @@ void main() {
     test('onNewNote callback fires on note beats', () async {
       sequencer.bpm = 600;
       sequencer.beatsPerNote = 1;
+      mockAudio.currentTick = 0;
       final notes = <int>[];
       sequencer.onNewNote = notes.add;
 
@@ -117,19 +152,17 @@ void main() {
       expect(notes, isNotEmpty);
     });
 
-    test('previous note is stopped before new note', () async {
-      sequencer.bpm = 600;
-      sequencer.beatsPerNote = 1;
+    test('note duration accounts for release gap', () async {
+      sequencer.bpm = 120; // 500ms per beat
+      sequencer.beatsPerNote = 2; // note spans 1000ms
+      mockAudio.currentTick = 0;
 
       await sequencer.start();
-      // Allow a couple timer ticks for multiple notes
-      await Future<void>.delayed(const Duration(milliseconds: 200));
       await sequencer.stop();
 
-      if (mockAudio.playedPianoNotes.length > 1) {
-        // Each note after the first should have a corresponding stop of the previous
-        expect(mockAudio.stoppedPianoNotes, isNotEmpty);
-      }
+      // Duration should be beatsPerNote * beatInterval - releaseGap
+      // = 2 * 500 - 50 = 950ms
+      expect(mockAudio.scheduledNotes.first.durationMs, 950);
     });
   });
 }

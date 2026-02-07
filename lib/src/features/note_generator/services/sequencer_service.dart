@@ -24,10 +24,10 @@ class SequencerService {
   // Internal state
   Timer? _timer;
   int _nextBeatIndex = 0;
-  int _nextBeatTimeMs = 0;
-  int? _currentPianoNote;
+  int _nextBeatTickMs = 0;
 
-  static const _timerIntervalMs = 20;
+  static const _timerIntervalMs = 50;
+  static const _lookaheadMs = 200;
   static const _noteReleaseGapMs = 50;
 
   bool get isPlaying => _timer != null;
@@ -35,9 +35,9 @@ class SequencerService {
   double get _beatIntervalMs => 60000.0 / bpm;
 
   Future<void> start() async {
-    _nextBeatTimeMs = DateTime.now().millisecondsSinceEpoch;
+    final currentTick = await audioService.getCurrentTick();
+    _nextBeatTickMs = currentTick;
     _nextBeatIndex = 0;
-    _currentPianoNote = null;
     _timer = Timer.periodic(
       const Duration(milliseconds: _timerIntervalMs),
       (_) => _tick(),
@@ -48,51 +48,32 @@ class SequencerService {
   Future<void> stop() async {
     _timer?.cancel();
     _timer = null;
-    if (_currentPianoNote != null) {
-      await audioService.stopPianoNote(_currentPianoNote!);
-      _currentPianoNote = null;
-    }
     await audioService.stopAllNotes();
   }
 
   Future<void> _tick() async {
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final currentTick = await audioService.getCurrentTick();
+    final horizon = currentTick + _lookaheadMs;
 
-    while (_nextBeatTimeMs <= now) {
+    while (_nextBeatTickMs <= horizon) {
       final beatInMeasure = _nextBeatIndex % beatsPerNote;
 
       if (metronomeEnabled) {
-        await audioService.playClick();
+        await audioService.scheduleClick(_nextBeatTickMs);
       }
 
       if (beatInMeasure == 0 && pianoEnabled) {
-        // Stop previous note
-        if (_currentPianoNote != null) {
-          await audioService.stopPianoNote(_currentPianoNote!);
-        }
         final note = _randomNote();
-        await audioService.playPianoNote(note);
-        _currentPianoNote = note;
+        final duration = (_beatIntervalMs * beatsPerNote - _noteReleaseGapMs)
+            .round();
+        await audioService.scheduleNote(_nextBeatTickMs, note, duration);
         onNewNote?.call(note);
       }
 
       onBeat?.call(beatInMeasure);
 
       _nextBeatIndex++;
-      _nextBeatTimeMs += _beatIntervalMs.round();
-    }
-
-    // Stop piano note shortly before next note beat
-    if (_currentPianoNote != null) {
-      final msUntilNextNote =
-          _nextBeatTimeMs -
-          now -
-          (_nextBeatIndex % beatsPerNote) * _beatIntervalMs.round();
-      if (msUntilNextNote <= _noteReleaseGapMs &&
-          _nextBeatIndex % beatsPerNote == 0) {
-        await audioService.stopPianoNote(_currentPianoNote!);
-        _currentPianoNote = null;
-      }
+      _nextBeatTickMs += _beatIntervalMs.round();
     }
   }
 
