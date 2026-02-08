@@ -9,7 +9,6 @@ class AudioService {
 
   static const _pianoChannel = 0;
   static const _clickChannel = 1;
-  static const _clickKey = 76; // woodblock
   static const _clickDurationMs = 50;
 
   Future<void> init() async {
@@ -51,19 +50,23 @@ class AudioService {
     );
   }
 
-  Future<void> scheduleClick(int tick) async {
+  Future<void> scheduleClick(
+    int tick, {
+    int key = 76,
+    int velocity = 100,
+  }) async {
     await _midi.scheduleNoteOn(
       sfId: _sfId,
       tick: tick,
       channel: _clickChannel,
-      key: _clickKey,
-      velocity: 100,
+      key: key,
+      velocity: velocity,
     );
     await _midi.scheduleNoteOff(
       sfId: _sfId,
       tick: tick + _clickDurationMs,
       channel: _clickChannel,
-      key: _clickKey,
+      key: key,
     );
   }
 
