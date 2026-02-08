@@ -150,6 +150,35 @@ void main() {
       expect(clickKeys(), isNot(contains(ClickSound.section)));
     });
 
+    test('section plays when beat 1 is toggled off', () async {
+      sequencer.bpm = 120;
+      sequencer.beatsPerBar = 1;
+      sequencer.barsPerSection = 4;
+      sequencer.beatToggles = [false];
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      expect(mockAudio.scheduledDrumHits, isNotEmpty);
+      expect(mockAudio.scheduledDrumHits.first.key, ClickSound.section);
+    });
+
+    test('no click at section start even when beat enabled', () async {
+      sequencer.bpm = 120;
+      sequencer.beatsPerBar = 1;
+      sequencer.barsPerSection = 4;
+      sequencer.beatToggles = [true];
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      // Section fires drum hit; no click at same tick
+      expect(mockAudio.scheduledDrumHits.first.tick, 0);
+      expect(clickTicks(), isNot(contains(0)));
+    });
+
     test('section overrides accent', () async {
       sequencer.bpm = 600; // 100ms per beat
       sequencer.beatsPerBar = 2;

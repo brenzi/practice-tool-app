@@ -1,27 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/polyrhythm_math.dart';
 import '../../providers/polyrhythm_providers.dart';
 
-class PolyrhythmLeds extends ConsumerWidget {
+class PolyrhythmLeds extends ConsumerStatefulWidget {
   const PolyrhythmLeds({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PolyrhythmLeds> createState() => _PolyrhythmLedsState();
+}
+
+class _PolyrhythmLedsState extends ConsumerState<PolyrhythmLeds>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  final _stopwatch = Stopwatch();
+  double _barPosition = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick);
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _stopwatch.stop();
+    super.dispose();
+  }
+
+  void _onTick(Duration _) {
+    final a = ref.read(polyrhythmProvider.select((s) => s.a));
+    final bpm = ref.read(polyrhythmProvider.select((s) => s.bpm));
+    final cycleDurationMs = a * 60000.0 / bpm;
+    final pos =
+        (_stopwatch.elapsedMilliseconds % cycleDurationMs) / cycleDurationMs;
+    if ((pos - _barPosition).abs() > 0.001) {
+      setState(() => _barPosition = pos);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final a = ref.watch(polyrhythmProvider.select((s) => s.a));
     final b = ref.watch(polyrhythmProvider.select((s) => s.b));
     final showSub = ref.watch(
       polyrhythmProvider.select((s) => s.showSubdivision),
     );
-    final currentA = ref.watch(
-      polyrhythmProvider.select((s) => s.currentTickA),
-    );
-    final currentB = ref.watch(
-      polyrhythmProvider.select((s) => s.currentTickB),
-    );
     final isPlaying = ref.watch(polyrhythmProvider.select((s) => s.isPlaying));
     final colorScheme = Theme.of(context).colorScheme;
+
+    ref.listen<bool>(polyrhythmProvider.select((s) => s.isPlaying), (
+      _,
+      playing,
+    ) {
+      if (playing) {
+        _stopwatch
+          ..reset()
+          ..start();
+        _ticker.start();
+      } else {
+        _ticker.stop();
+        _stopwatch.stop();
+        setState(() => _barPosition = 0);
+      }
+    });
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -31,9 +76,7 @@ class PolyrhythmLeds extends ConsumerWidget {
         Widget buildRow({
           required String label,
           required int count,
-          required Color activeColor,
           required Color inactiveColor,
-          int activeIndex = -1,
         }) {
           final positions = beatPositions(count);
           return SizedBox(
@@ -51,7 +94,6 @@ class PolyrhythmLeds extends ConsumerWidget {
                 ),
                 ...List.generate(count, (i) {
                   final x = 24 + positions[i] * width;
-                  final isActive = isPlaying && i == activeIndex;
                   return Positioned(
                     left: x - ledRadius,
                     top: 12,
@@ -60,11 +102,24 @@ class PolyrhythmLeds extends ConsumerWidget {
                       height: ledRadius * 2,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isActive ? activeColor : inactiveColor,
+                        color: inactiveColor,
                       ),
                     ),
                   );
                 }),
+                // Ghost beat at position 1.0
+                Positioned(
+                  left: 24 + width - ledRadius,
+                  top: 12,
+                  child: Container(
+                    width: ledRadius * 2,
+                    height: ledRadius * 2,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: inactiveColor, width: 1.5),
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -72,37 +127,46 @@ class PolyrhythmLeds extends ConsumerWidget {
 
         final subCount = lcm(a, b);
 
+        final rows = <Widget>[
+          buildRow(
+            label: 'A',
+            count: a,
+            inactiveColor: colorScheme.primaryContainer,
+          ),
+          const SizedBox(height: 8),
+          buildRow(
+            label: 'B',
+            count: b,
+            inactiveColor: colorScheme.tertiaryContainer,
+          ),
+          if (showSub) ...[
+            const SizedBox(height: 8),
+            buildRow(
+              label: 's',
+              count: subCount,
+              inactiveColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ],
+        ];
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              buildRow(
-                label: 'A',
-                count: a,
-                activeColor: colorScheme.primary,
-                inactiveColor: colorScheme.primaryContainer,
-                activeIndex: currentA,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: rows,
               ),
-              const SizedBox(height: 8),
-              buildRow(
-                label: 'B',
-                count: b,
-                activeColor: colorScheme.tertiary,
-                inactiveColor: colorScheme.tertiaryContainer,
-                activeIndex: currentB,
-              ),
-              if (showSub) ...[
-                const SizedBox(height: 8),
-                buildRow(
-                  label: 's',
-                  count: subCount,
-                  activeColor: colorScheme.outline,
-                  inactiveColor: colorScheme.outlineVariant.withValues(
-                    alpha: 0.3,
+              if (isPlaying)
+                Positioned(
+                  left: 24 + _barPosition * width - 1,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 2,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
-              ],
             ],
           ),
         );

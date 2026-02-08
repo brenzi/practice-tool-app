@@ -30,7 +30,8 @@ void main() {
 
   testWidgets('shows tempo display', (tester) async {
     await tester.pumpWidget(_buildTestApp());
-    expect(find.textContaining('= 120'), findsOneWidget);
+    // Inline wheel renders BPM as '120' text
+    expect(find.text('120'), findsOneWidget);
   });
 
   testWidgets('shows beats selector', (tester) async {

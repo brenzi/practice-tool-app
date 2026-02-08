@@ -1,7 +1,125 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// Standalone tempo wheel widget. Parent owns BPM state.
+class TempoWheel extends StatelessWidget {
+  const TempoWheel({
+    super.key,
+    required this.bpm,
+    required this.onBpmChanged,
+    this.min = 40,
+    this.max = 300,
+  });
+
+  final int bpm;
+  final ValueChanged<int> onBpmChanged;
+  final int min;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = math.min(constraints.maxWidth, constraints.maxHeight);
+        return _WheelGesture(
+          bpm: bpm,
+          onBpmChanged: onBpmChanged,
+          min: min,
+          max: max,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: CustomPaint(
+              painter: _WheelPainter(
+                bpm: bpm,
+                min: min,
+                max: max,
+                color: Theme.of(context).colorScheme.primary,
+                trackColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+                textColor: Theme.of(context).colorScheme.onSurface,
+              ),
+              child: Center(
+                child: Text(
+                  '$bpm',
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Wraps a child with pan-gesture-to-BPM logic.
+class _WheelGesture extends StatefulWidget {
+  const _WheelGesture({
+    required this.bpm,
+    required this.onBpmChanged,
+    required this.min,
+    required this.max,
+    required this.child,
+  });
+
+  final int bpm;
+  final ValueChanged<int> onBpmChanged;
+  final int min;
+  final int max;
+  final Widget child;
+
+  @override
+  State<_WheelGesture> createState() => _WheelGestureState();
+}
+
+class _WheelGestureState extends State<_WheelGesture> {
+  Offset? _lastPanPosition;
+
+  void _onPanUpdate(DragUpdateDetails details, Offset center) {
+    final current = details.globalPosition;
+    final prev = _lastPanPosition ?? current;
+    _lastPanPosition = current;
+
+    final prevAngle = math.atan2(prev.dy - center.dy, prev.dx - center.dx);
+    final curAngle = math.atan2(current.dy - center.dy, current.dx - center.dx);
+    var delta = curAngle - prevAngle;
+
+    if (delta > math.pi) delta -= 2 * math.pi;
+    if (delta < -math.pi) delta += 2 * math.pi;
+
+    final bpmDelta = delta / (2 * math.pi) * (widget.max - widget.min);
+    final newBpm = (widget.bpm + bpmDelta.round()).clamp(
+      widget.min,
+      widget.max,
+    );
+
+    if (newBpm != widget.bpm) {
+      widget.onBpmChanged(newBpm);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanStart: (_) => _lastPanPosition = null,
+      onPanUpdate: (details) {
+        final box = context.findRenderObject() as RenderBox;
+        final center = box.localToGlobal(
+          Offset(box.size.width / 2, box.size.height / 2),
+        );
+        _onPanUpdate(details, center);
+      },
+      child: widget.child,
+    );
+  }
+}
+
+/// Dialog wrapper that owns local BPM state for the overlay use case.
 class TempoWheelOverlay extends StatefulWidget {
   const TempoWheelOverlay({
     super.key,
@@ -22,7 +140,6 @@ class TempoWheelOverlay extends StatefulWidget {
 
 class _TempoWheelOverlayState extends State<TempoWheelOverlay> {
   late int _bpm;
-  Offset? _lastPanPosition;
 
   @override
   void initState() {
@@ -30,34 +147,10 @@ class _TempoWheelOverlayState extends State<TempoWheelOverlay> {
     _bpm = widget.initialBpm;
   }
 
-  void _onPanUpdate(DragUpdateDetails details, Offset center) {
-    final current = details.globalPosition;
-    final prev = _lastPanPosition ?? current;
-    _lastPanPosition = current;
-
-    final prevAngle = atan2(prev.dy - center.dy, prev.dx - center.dx);
-    final curAngle = atan2(current.dy - center.dy, current.dx - center.dx);
-    var delta = curAngle - prevAngle;
-
-    // Normalize to [-pi, pi]
-    if (delta > pi) delta -= 2 * pi;
-    if (delta < -pi) delta += 2 * pi;
-
-    // Map angular delta to BPM change
-    // Full circle = 360° → full range
-    final bpmDelta = delta / (2 * pi) * (widget.max - widget.min);
-    final newBpm = (_bpm + bpmDelta.round()).clamp(widget.min, widget.max);
-
-    if (newBpm != _bpm) {
-      setState(() => _bpm = newBpm);
-      widget.onBpmChanged(newBpm);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final wheelSize = min(screenSize.width, screenSize.height) * 0.85;
+    final wheelSize = math.min(screenSize.width, screenSize.height) * 0.85;
 
     return GestureDetector(
       onTap: () => Navigator.of(context).pop(),
@@ -65,36 +158,17 @@ class _TempoWheelOverlayState extends State<TempoWheelOverlay> {
       child: Center(
         child: GestureDetector(
           onTap: () {}, // absorb taps on wheel
-          onPanStart: (_) => _lastPanPosition = null,
-          onPanUpdate: (details) {
-            final box = context.findRenderObject() as RenderBox;
-            final center = box.localToGlobal(
-              Offset(box.size.width / 2, box.size.height / 2),
-            );
-            _onPanUpdate(details, center);
-          },
           child: SizedBox(
             width: wheelSize,
             height: wheelSize,
-            child: CustomPaint(
-              painter: _WheelPainter(
-                bpm: _bpm,
-                min: widget.min,
-                max: widget.max,
-                color: Theme.of(context).colorScheme.primary,
-                trackColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-                textColor: Theme.of(context).colorScheme.onSurface,
-              ),
-              child: Center(
-                child: Text(
-                  '$_bpm',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+            child: TempoWheel(
+              bpm: _bpm,
+              onBpmChanged: (bpm) {
+                setState(() => _bpm = bpm);
+                widget.onBpmChanged(bpm);
+              },
+              min: widget.min,
+              max: widget.max,
             ),
           ),
         ),
@@ -120,8 +194,9 @@ class _WheelPainter extends CustomPainter {
   final Color trackColor;
   final Color textColor;
 
-  static const _startAngle = 2 * pi * 0.4167; // 150° from top = bottom-left
-  static const _sweepAngle = 2 * pi * 0.8333; // 300° arc
+  static const _startAngle =
+      2 * math.pi * 0.4167; // 150° from top = bottom-left
+  static const _sweepAngle = 2 * math.pi * 0.8333; // 300° arc
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -168,12 +243,12 @@ class _WheelPainter extends CustomPainter {
       final outerR = radius - 4;
       canvas.drawLine(
         Offset(
-          center.dx + innerR * cos(angle),
-          center.dy + innerR * sin(angle),
+          center.dx + innerR * math.cos(angle),
+          center.dy + innerR * math.sin(angle),
         ),
         Offset(
-          center.dx + outerR * cos(angle),
-          center.dy + outerR * sin(angle),
+          center.dx + outerR * math.cos(angle),
+          center.dy + outerR * math.sin(angle),
         ),
         tickPaint,
       );
@@ -184,8 +259,8 @@ class _WheelPainter extends CustomPainter {
     final thumbPaint = Paint()..color = color;
     canvas.drawCircle(
       Offset(
-        center.dx + radius * cos(thumbAngle),
-        center.dy + radius * sin(thumbAngle),
+        center.dx + radius * math.cos(thumbAngle),
+        center.dy + radius * math.sin(thumbAngle),
       ),
       10,
       thumbPaint,

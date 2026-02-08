@@ -74,13 +74,16 @@ class MetronomeSequencerService {
           ? (_nextBeatIndex ~/ beatsPerBar) % barsPerSection
           : 0;
 
-      if (beatInBar < beatToggles.length && beatToggles[beatInBar]) {
-        if (barsPerSection > 0 && beatInBar == 0 && barIndex == 0) {
-          await audioService.scheduleDrumHit(
-            _nextBeatTickMs,
-            key: ClickSound.section,
-          );
-        } else if (accentBeat1 && beatInBar == 0) {
+      final isSectionStart =
+          barsPerSection > 0 && beatInBar == 0 && barIndex == 0;
+
+      if (isSectionStart) {
+        await audioService.scheduleDrumHit(
+          _nextBeatTickMs,
+          key: ClickSound.section,
+        );
+      } else if (beatInBar < beatToggles.length && beatToggles[beatInBar]) {
+        if (accentBeat1 && beatInBar == 0) {
           await audioService.scheduleClick(
             _nextBeatTickMs,
             key: ClickSound.accent,
