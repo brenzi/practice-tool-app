@@ -58,11 +58,12 @@ void main() {
     await tester.pumpWidget(_buildTestApp());
     expect(find.text('Piano'), findsOneWidget);
     expect(find.text('Metronome'), findsOneWidget);
-    // Both switches should be on by default
+    // Limit interval off, Piano and Metronome on
     final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
-    expect(switches.length, 2);
-    expect(switches[0].value, isTrue);
-    expect(switches[1].value, isTrue);
+    expect(switches.length, 3);
+    expect(switches[0].value, isFalse); // Limit interval
+    expect(switches[1].value, isTrue); // Piano
+    expect(switches[2].value, isTrue); // Metronome
   });
 
   testWidgets('shows range section with presets', (tester) async {
@@ -78,6 +79,14 @@ void main() {
     expect(find.text('Tempo'), findsOneWidget);
     expect(find.text('80 BPM'), findsOneWidget);
     expect(find.text('Beats per note'), findsOneWidget);
+  });
+
+  testWidgets('shows Note Rules section', (tester) async {
+    await tester.pumpWidget(_buildTestApp());
+    await tester.scrollUntilVisible(find.text('Note Rules'), 100);
+    expect(find.text('Note Rules'), findsOneWidget);
+    expect(find.text('Limit interval'), findsOneWidget);
+    expect(find.text('Root'), findsOneWidget);
   });
 
   testWidgets('tap Play toggles to Stop and back', (tester) async {

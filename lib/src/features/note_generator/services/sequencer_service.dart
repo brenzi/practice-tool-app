@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import '../domain/scale.dart';
 import 'audio_service.dart';
 
 class SequencerService {
@@ -16,6 +17,9 @@ class SequencerService {
   int rangeHigh = 108;
   bool pianoEnabled = true;
   bool metronomeEnabled = true;
+  int? maxInterval;
+  int? rootPitchClass;
+  ScaleType? scaleType;
 
   // Callbacks for UI
   void Function(int midiNote)? onNewNote;
@@ -25,6 +29,7 @@ class SequencerService {
   Timer? _timer;
   int _nextBeatIndex = 0;
   int _nextBeatTickMs = 0;
+  int? _previousNote;
 
   static const _timerIntervalMs = 50;
   static const _lookaheadMs = 200;
@@ -38,6 +43,7 @@ class SequencerService {
     final currentTick = await audioService.getCurrentTick();
     _nextBeatTickMs = currentTick;
     _nextBeatIndex = 0;
+    _previousNote = null;
     _timer = Timer.periodic(
       const Duration(milliseconds: _timerIntervalMs),
       (_) => _tick(),
@@ -78,8 +84,38 @@ class SequencerService {
   }
 
   int _randomNote() {
-    final span = rangeHigh - rangeLow;
-    if (span <= 0) return rangeLow;
-    return rangeLow + _random.nextInt(span + 1);
+    var candidates = List.generate(
+      rangeHigh - rangeLow + 1,
+      (i) => rangeLow + i,
+    );
+
+    final root = rootPitchClass;
+    final scale = scaleType;
+    if (root != null && scale != null) {
+      final pitchClasses = scalePitchClasses(root, scale);
+      candidates = candidates
+          .where((n) => pitchClasses.contains(n % 12))
+          .toList();
+    }
+
+    final prev = _previousNote;
+    final interval = maxInterval;
+    if (interval != null && prev != null) {
+      candidates = candidates
+          .where((n) => (n - prev).abs() <= interval)
+          .toList();
+    }
+
+    if (prev != null && candidates.length > 1) {
+      candidates.remove(prev);
+    }
+
+    if (candidates.isEmpty) {
+      candidates = List.generate(rangeHigh - rangeLow + 1, (i) => rangeLow + i);
+    }
+
+    final note = candidates[_random.nextInt(candidates.length)];
+    _previousNote = note;
+    return note;
   }
 }

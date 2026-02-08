@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/note_display.dart';
+import 'widgets/note_rules.dart';
 import 'widgets/range_selector.dart';
 import 'widgets/tempo_controls.dart';
 import 'widgets/transport_controls.dart';
@@ -18,6 +19,9 @@ class NoteGeneratorScreen extends StatelessWidget {
             NoteDisplay(),
             Divider(),
             RangeSelector(),
+            SizedBox(height: 16),
+            Divider(),
+            NoteRules(),
             SizedBox(height: 16),
             Divider(),
             TempoControls(),

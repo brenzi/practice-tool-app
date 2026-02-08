@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jazz_practice_tools/src/features/note_generator/domain/scale.dart';
 import 'package:jazz_practice_tools/src/features/note_generator/services/audio_service.dart';
 import 'package:jazz_practice_tools/src/features/note_generator/services/sequencer_service.dart';
 
@@ -163,6 +164,74 @@ void main() {
       // Duration should be beatsPerNote * beatInterval - releaseGap
       // = 2 * 500 - 50 = 950ms
       expect(mockAudio.scheduledNotes.first.durationMs, 950);
+    });
+
+    test('no consecutive duplicate notes', () async {
+      sequencer.bpm = 6000; // very fast to generate many notes
+      sequencer.beatsPerNote = 1;
+      sequencer.rangeLow = 60;
+      sequencer.rangeHigh = 61;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      final notes = mockAudio.scheduledNotes.map((n) => n.midiNote).toList();
+      expect(notes.length, greaterThan(1));
+      for (var i = 1; i < notes.length; i++) {
+        expect(notes[i], isNot(equals(notes[i - 1])));
+      }
+    });
+
+    test('maxInterval constrains distance between notes', () async {
+      sequencer.bpm = 6000;
+      sequencer.beatsPerNote = 1;
+      sequencer.rangeLow = 48;
+      sequencer.rangeHigh = 72;
+      sequencer.maxInterval = 2;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      final notes = mockAudio.scheduledNotes.map((n) => n.midiNote).toList();
+      expect(notes.length, greaterThan(1));
+      for (var i = 1; i < notes.length; i++) {
+        expect((notes[i] - notes[i - 1]).abs(), lessThanOrEqualTo(2));
+      }
+    });
+
+    test('scale filter restricts to pitch classes', () async {
+      sequencer.bpm = 6000;
+      sequencer.beatsPerNote = 1;
+      sequencer.rangeLow = 60;
+      sequencer.rangeHigh = 72;
+      sequencer.rootPitchClass = 0; // C
+      sequencer.scaleType = ScaleType.major;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      final majorPCs = {0, 2, 4, 5, 7, 9, 11};
+      for (final note in mockAudio.scheduledNotes) {
+        expect(majorPCs.contains(note.midiNote % 12), isTrue);
+      }
+    });
+
+    test('impossible constraints still return a note', () async {
+      sequencer.bpm = 120;
+      sequencer.beatsPerNote = 1;
+      sequencer.rangeLow = 60;
+      sequencer.rangeHigh = 60;
+      sequencer.rootPitchClass = 1; // C# — 60 is C, not in C# major
+      sequencer.scaleType = ScaleType.major;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      expect(mockAudio.scheduledNotes, isNotEmpty);
     });
   });
 }

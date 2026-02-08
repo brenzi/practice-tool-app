@@ -2,8 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common/midi_utils.dart';
 import '../domain/note_range.dart';
+import '../domain/scale.dart';
 import '../services/audio_service.dart';
 import '../services/sequencer_service.dart';
+
+const _sentinel = Object();
 
 class NoteGeneratorState {
   const NoteGeneratorState({
@@ -16,6 +19,9 @@ class NoteGeneratorState {
     this.isPlaying = false,
     this.currentNoteName = '---',
     this.currentBeat = 0,
+    this.maxInterval,
+    this.rootPitchClass,
+    this.scaleType,
   });
 
   final int bpm;
@@ -27,6 +33,9 @@ class NoteGeneratorState {
   final bool isPlaying;
   final String currentNoteName;
   final int currentBeat;
+  final int? maxInterval;
+  final int? rootPitchClass;
+  final ScaleType? scaleType;
 
   NoteGeneratorState copyWith({
     int? bpm,
@@ -38,6 +47,9 @@ class NoteGeneratorState {
     bool? isPlaying,
     String? currentNoteName,
     int? currentBeat,
+    Object? maxInterval = _sentinel,
+    Object? rootPitchClass = _sentinel,
+    Object? scaleType = _sentinel,
   }) {
     return NoteGeneratorState(
       bpm: bpm ?? this.bpm,
@@ -49,6 +61,15 @@ class NoteGeneratorState {
       isPlaying: isPlaying ?? this.isPlaying,
       currentNoteName: currentNoteName ?? this.currentNoteName,
       currentBeat: currentBeat ?? this.currentBeat,
+      maxInterval: maxInterval == _sentinel
+          ? this.maxInterval
+          : maxInterval as int?,
+      rootPitchClass: rootPitchClass == _sentinel
+          ? this.rootPitchClass
+          : rootPitchClass as int?,
+      scaleType: scaleType == _sentinel
+          ? this.scaleType
+          : scaleType as ScaleType?,
     );
   }
 }
@@ -134,6 +155,20 @@ class NoteGeneratorNotifier extends Notifier<NoteGeneratorState> {
     _sequencer.metronomeEnabled = enabled;
   }
 
+  void setMaxInterval(int? value) {
+    state = state.copyWith(maxInterval: value);
+    _sequencer.maxInterval = value;
+  }
+
+  void setScale(int? rootPitchClass, ScaleType? scaleType) {
+    state = state.copyWith(
+      rootPitchClass: rootPitchClass,
+      scaleType: scaleType,
+    );
+    _sequencer.rootPitchClass = rootPitchClass;
+    _sequencer.scaleType = scaleType;
+  }
+
   void _syncSequencerParams() {
     _sequencer
       ..bpm = state.bpm
@@ -141,7 +176,10 @@ class NoteGeneratorNotifier extends Notifier<NoteGeneratorState> {
       ..rangeLow = state.rangeLow
       ..rangeHigh = state.rangeHigh
       ..pianoEnabled = state.pianoEnabled
-      ..metronomeEnabled = state.metronomeEnabled;
+      ..metronomeEnabled = state.metronomeEnabled
+      ..maxInterval = state.maxInterval
+      ..rootPitchClass = state.rootPitchClass
+      ..scaleType = state.scaleType;
   }
 
   Future<void> _dispose() async {
