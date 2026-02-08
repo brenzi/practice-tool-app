@@ -38,11 +38,17 @@ class NoteDisplay extends ConsumerWidget {
             final isActive = isPlaying && i == currentBeat;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: CircleAvatar(
-                radius: isActive ? 8 : 6,
-                backgroundColor: isActive
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: Center(
+                  child: CircleAvatar(
+                    radius: isActive ? 8 : 6,
+                    backgroundColor: isActive
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surfaceContainerHighest,
+                  ),
+                ),
               ),
             );
           }),
