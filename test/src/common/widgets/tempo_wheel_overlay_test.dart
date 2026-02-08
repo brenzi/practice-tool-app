@@ -6,7 +6,7 @@ Widget _buildApp({
   required int initialBpm,
   required ValueChanged<int> onBpmChanged,
   int min = 40,
-  int max = 300,
+  int max = 200,
 }) {
   return MaterialApp(
     theme: ThemeData(

@@ -9,7 +9,7 @@ class TempoWheel extends StatelessWidget {
     required this.bpm,
     required this.onBpmChanged,
     this.min = 40,
-    this.max = 300,
+    this.max = 200,
   });
 
   final int bpm;
@@ -79,6 +79,7 @@ class _WheelGesture extends StatefulWidget {
 
 class _WheelGestureState extends State<_WheelGesture> {
   Offset? _lastPanPosition;
+  double _fractional = 0;
 
   void _onPanUpdate(DragUpdateDetails details, Offset center) {
     final current = details.globalPosition;
@@ -92,12 +93,12 @@ class _WheelGestureState extends State<_WheelGesture> {
     if (delta > math.pi) delta -= 2 * math.pi;
     if (delta < -math.pi) delta += 2 * math.pi;
 
-    final bpmDelta = delta / (2 * math.pi) * (widget.max - widget.min);
-    final newBpm = (widget.bpm + bpmDelta.round()).clamp(
-      widget.min,
-      widget.max,
-    );
+    _fractional += delta / (2 * math.pi) * (widget.max - widget.min);
+    final steps = _fractional.truncate();
+    if (steps == 0) return;
+    _fractional -= steps;
 
+    final newBpm = (widget.bpm + steps).clamp(widget.min, widget.max);
     if (newBpm != widget.bpm) {
       widget.onBpmChanged(newBpm);
     }
@@ -106,7 +107,10 @@ class _WheelGestureState extends State<_WheelGesture> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onPanStart: (_) => _lastPanPosition = null,
+      onPanStart: (_) {
+        _lastPanPosition = null;
+        _fractional = 0;
+      },
       onPanUpdate: (details) {
         final box = context.findRenderObject() as RenderBox;
         final center = box.localToGlobal(
@@ -126,7 +130,7 @@ class TempoWheelOverlay extends StatefulWidget {
     required this.initialBpm,
     required this.onBpmChanged,
     this.min = 40,
-    this.max = 300,
+    this.max = 200,
   });
 
   final int initialBpm;
@@ -276,7 +280,7 @@ Future<void> showTempoWheel(
   required int currentBpm,
   required ValueChanged<int> onBpmChanged,
   int min = 40,
-  int max = 300,
+  int max = 200,
 }) {
   return showDialog(
     context: context,
