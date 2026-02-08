@@ -19,7 +19,8 @@ class NoteGeneratorState {
     this.isPlaying = false,
     this.currentNoteName = '---',
     this.currentBeat = 0,
-    this.maxInterval,
+    this.minInterval = 1,
+    this.maxInterval = 12,
     this.rootPitchClass,
     this.scaleType,
   });
@@ -33,7 +34,8 @@ class NoteGeneratorState {
   final bool isPlaying;
   final String currentNoteName;
   final int currentBeat;
-  final int? maxInterval;
+  final int minInterval;
+  final int maxInterval;
   final int? rootPitchClass;
   final ScaleType? scaleType;
 
@@ -47,7 +49,8 @@ class NoteGeneratorState {
     bool? isPlaying,
     String? currentNoteName,
     int? currentBeat,
-    Object? maxInterval = _sentinel,
+    int? minInterval,
+    int? maxInterval,
     Object? rootPitchClass = _sentinel,
     Object? scaleType = _sentinel,
   }) {
@@ -61,9 +64,8 @@ class NoteGeneratorState {
       isPlaying: isPlaying ?? this.isPlaying,
       currentNoteName: currentNoteName ?? this.currentNoteName,
       currentBeat: currentBeat ?? this.currentBeat,
-      maxInterval: maxInterval == _sentinel
-          ? this.maxInterval
-          : maxInterval as int?,
+      minInterval: minInterval ?? this.minInterval,
+      maxInterval: maxInterval ?? this.maxInterval,
       rootPitchClass: rootPitchClass == _sentinel
           ? this.rootPitchClass
           : rootPitchClass as int?,
@@ -155,9 +157,10 @@ class NoteGeneratorNotifier extends Notifier<NoteGeneratorState> {
     _sequencer.metronomeEnabled = enabled;
   }
 
-  void setMaxInterval(int? value) {
-    state = state.copyWith(maxInterval: value);
-    _sequencer.maxInterval = value;
+  void setIntervalRange(int min, int max) {
+    state = state.copyWith(minInterval: min, maxInterval: max);
+    _sequencer.minInterval = min;
+    _sequencer.maxInterval = max;
   }
 
   void setScale(int? rootPitchClass, ScaleType? scaleType) {
@@ -177,6 +180,7 @@ class NoteGeneratorNotifier extends Notifier<NoteGeneratorState> {
       ..rangeHigh = state.rangeHigh
       ..pianoEnabled = state.pianoEnabled
       ..metronomeEnabled = state.metronomeEnabled
+      ..minInterval = state.minInterval
       ..maxInterval = state.maxInterval
       ..rootPitchClass = state.rootPitchClass
       ..scaleType = state.scaleType;

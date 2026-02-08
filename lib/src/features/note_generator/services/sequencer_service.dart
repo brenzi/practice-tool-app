@@ -17,7 +17,8 @@ class SequencerService {
   int rangeHigh = 108;
   bool pianoEnabled = true;
   bool metronomeEnabled = true;
-  int? maxInterval;
+  int minInterval = 1;
+  int maxInterval = 12;
   int? rootPitchClass;
   ScaleType? scaleType;
 
@@ -99,15 +100,11 @@ class SequencerService {
     }
 
     final prev = _previousNote;
-    final interval = maxInterval;
-    if (interval != null && prev != null) {
-      candidates = candidates
-          .where((n) => (n - prev).abs() <= interval)
-          .toList();
-    }
-
-    if (prev != null && candidates.length > 1) {
-      candidates.remove(prev);
+    if (prev != null) {
+      candidates = candidates.where((n) {
+        final d = (n - prev).abs();
+        return d >= minInterval && d <= maxInterval;
+      }).toList();
     }
 
     if (candidates.isEmpty) {

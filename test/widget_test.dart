@@ -54,16 +54,10 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
   });
 
-  testWidgets('shows piano and metronome switches', (tester) async {
+  testWidgets('shows toggle buttons for Piano and Metro', (tester) async {
     await tester.pumpWidget(_buildTestApp());
     expect(find.text('Piano'), findsOneWidget);
-    expect(find.text('Metronome'), findsOneWidget);
-    // Limit interval off, Piano and Metronome on
-    final switches = tester.widgetList<Switch>(find.byType(Switch)).toList();
-    expect(switches.length, 3);
-    expect(switches[0].value, isFalse); // Limit interval
-    expect(switches[1].value, isTrue); // Piano
-    expect(switches[2].value, isTrue); // Metronome
+    expect(find.text('Metro'), findsOneWidget);
   });
 
   testWidgets('shows range section with presets', (tester) async {
@@ -76,22 +70,19 @@ void main() {
 
   testWidgets('shows tempo section', (tester) async {
     await tester.pumpWidget(_buildTestApp());
-    expect(find.text('Tempo'), findsOneWidget);
-    expect(find.text('80 BPM'), findsOneWidget);
-    expect(find.text('Beats per note'), findsOneWidget);
+    expect(find.text('Tempo 80'), findsOneWidget);
+    expect(find.text('Beats'), findsOneWidget);
   });
 
-  testWidgets('shows Note Rules section', (tester) async {
+  testWidgets('shows interval and scale controls', (tester) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.scrollUntilVisible(find.text('Note Rules'), 100);
-    expect(find.text('Note Rules'), findsOneWidget);
-    expect(find.text('Limit interval'), findsOneWidget);
-    expect(find.text('Root'), findsOneWidget);
+    expect(find.text('Interval'), findsOneWidget);
+    expect(find.text('Scale'), findsOneWidget);
+    expect(find.text('chromatic'), findsOneWidget);
   });
 
   testWidgets('tap Play toggles to Stop and back', (tester) async {
     await tester.pumpWidget(_buildTestApp());
-    await tester.scrollUntilVisible(find.text('Play'), 100);
     await tester.tap(find.text('Play'));
     await tester.pump();
     expect(find.text('Stop'), findsOneWidget);

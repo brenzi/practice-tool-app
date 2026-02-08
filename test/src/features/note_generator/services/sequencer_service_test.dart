@@ -183,11 +183,12 @@ void main() {
       }
     });
 
-    test('maxInterval constrains distance between notes', () async {
+    test('interval range constrains distance between notes', () async {
       sequencer.bpm = 6000;
       sequencer.beatsPerNote = 1;
       sequencer.rangeLow = 48;
       sequencer.rangeHigh = 72;
+      sequencer.minInterval = 1;
       sequencer.maxInterval = 2;
       mockAudio.currentTick = 0;
 
@@ -197,7 +198,28 @@ void main() {
       final notes = mockAudio.scheduledNotes.map((n) => n.midiNote).toList();
       expect(notes.length, greaterThan(1));
       for (var i = 1; i < notes.length; i++) {
-        expect((notes[i] - notes[i - 1]).abs(), lessThanOrEqualTo(2));
+        final diff = (notes[i] - notes[i - 1]).abs();
+        expect(diff, greaterThanOrEqualTo(1));
+        expect(diff, lessThanOrEqualTo(2));
+      }
+    });
+
+    test('minInterval enforces minimum jump distance', () async {
+      sequencer.bpm = 6000;
+      sequencer.beatsPerNote = 1;
+      sequencer.rangeLow = 48;
+      sequencer.rangeHigh = 72;
+      sequencer.minInterval = 3;
+      sequencer.maxInterval = 24;
+      mockAudio.currentTick = 0;
+
+      await sequencer.start();
+      await sequencer.stop();
+
+      final notes = mockAudio.scheduledNotes.map((n) => n.midiNote).toList();
+      expect(notes.length, greaterThan(1));
+      for (var i = 1; i < notes.length; i++) {
+        expect((notes[i] - notes[i - 1]).abs(), greaterThanOrEqualTo(3));
       }
     });
 

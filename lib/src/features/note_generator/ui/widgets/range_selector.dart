@@ -21,14 +21,12 @@ class RangeSelector extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('Range', style: Theme.of(context).textTheme.titleMedium),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Text('Range', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(width: 12),
               Text(midiNoteToName(rangeLow)),
+              const Spacer(),
               Text(midiNoteToName(rangeHigh)),
             ],
           ),
@@ -59,6 +57,7 @@ class RangeSelector extends ConsumerWidget {
               return ChoiceChip(
                 label: Text(preset.label),
                 selected: isSelected,
+                visualDensity: VisualDensity.compact,
                 onSelected: (_) {
                   ref
                       .read(noteGeneratorProvider.notifier)

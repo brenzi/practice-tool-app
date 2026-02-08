@@ -19,11 +19,42 @@ const _noteNames = [
   'B',
 ];
 
+const _intervalNames = [
+  '', // 0 unused
+  'b2nd',
+  '2nd',
+  'm3rd',
+  '3rd',
+  '4th',
+  'b5th',
+  '5th',
+  'b6th',
+  '6th',
+  'b7th',
+  '7th',
+  'p8va',
+  'b9th',
+  '9th',
+  'm10th',
+  '10th',
+  '11th',
+  'b12th',
+  '12th',
+  'b13th',
+  '13th',
+  'b14th',
+  '14th',
+  '2xp8va',
+];
+
 class NoteRules extends ConsumerWidget {
   const NoteRules({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final minInterval = ref.watch(
+      noteGeneratorProvider.select((s) => s.minInterval),
+    );
     final maxInterval = ref.watch(
       noteGeneratorProvider.select((s) => s.maxInterval),
     );
@@ -40,47 +71,40 @@ class NoteRules extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Note Rules',
-            style: Theme.of(context).textTheme.titleMedium,
+          child: Row(
+            children: [
+              Text('Interval', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(width: 12),
+              Text(_intervalNames[minInterval]),
+              const Spacer(),
+              Text(_intervalNames[maxInterval]),
+            ],
           ),
         ),
-        SwitchListTile(
-          title: const Text('Limit interval'),
-          value: maxInterval != null,
-          onChanged: (on) {
-            notifier.setMaxInterval(on ? 12 : null);
+        RangeSlider(
+          values: RangeValues(minInterval.toDouble(), maxInterval.toDouble()),
+          min: 1,
+          max: 24,
+          divisions: 23,
+          labels: RangeLabels(
+            _intervalNames[minInterval],
+            _intervalNames[maxInterval],
+          ),
+          onChanged: (values) {
+            notifier.setIntervalRange(values.start.round(), values.end.round());
           },
         ),
-        if (maxInterval != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Text('$maxInterval semitones'),
-                Expanded(
-                  child: Slider(
-                    value: maxInterval.toDouble(),
-                    min: 1,
-                    max: 24,
-                    divisions: 23,
-                    label: '$maxInterval',
-                    onChanged: (v) => notifier.setMaxInterval(v.round()),
-                  ),
-                ),
-              ],
-            ),
-          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Text('Root'),
-              const SizedBox(width: 16),
+              Text('Scale', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(width: 8),
               DropdownButton<int?>(
                 value: rootPitchClass,
+                isDense: true,
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('All')),
+                  const DropdownMenuItem(value: null, child: Text('chromatic')),
                   for (var i = 0; i < 12; i++)
                     DropdownMenuItem(value: i, child: Text(_noteNames[i])),
                 ],
@@ -92,11 +116,10 @@ class NoteRules extends ConsumerWidget {
                 },
               ),
               if (rootPitchClass != null) ...[
-                const SizedBox(width: 24),
-                const Text('Scale'),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 DropdownButton<ScaleType>(
                   value: scaleType ?? ScaleType.major,
+                  isDense: true,
                   items: ScaleType.values
                       .map(
                         (s) => DropdownMenuItem(value: s, child: Text(s.label)),

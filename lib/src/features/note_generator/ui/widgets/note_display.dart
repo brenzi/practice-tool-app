@@ -23,7 +23,7 @@ class NoteDisplay extends ConsumerWidget {
 
     return Column(
       children: [
-        const SizedBox(height: 32),
+        const SizedBox(height: 12),
         Text(
           noteName,
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
@@ -31,7 +31,7 @@ class NoteDisplay extends ConsumerWidget {
             letterSpacing: 2,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(beatsPerNote, (i) {
@@ -53,7 +53,7 @@ class NoteDisplay extends ConsumerWidget {
             );
           }),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 8),
       ],
     );
   }

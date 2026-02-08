@@ -21,10 +21,11 @@ class TempoControls extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Tempo', style: Theme.of(context).textTheme.titleMedium),
-              Text('$bpm BPM'),
+              Text(
+                'Tempo $bpm',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ],
           ),
         ),
@@ -40,22 +41,24 @@ class TempoControls extends ConsumerWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Beats per note',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SegmentedButton<int>(
-            segments: _beatsPerNoteOptions
-                .map((v) => ButtonSegment(value: v, label: Text('$v')))
-                .toList(),
-            selected: {beatsPerNote},
-            onSelectionChanged: (s) {
-              ref.read(noteGeneratorProvider.notifier).setBeatsPerNote(s.first);
-            },
+          child: Row(
+            children: [
+              Text('Beats', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SegmentedButton<int>(
+                  segments: _beatsPerNoteOptions
+                      .map((v) => ButtonSegment(value: v, label: Text('$v')))
+                      .toList(),
+                  selected: {beatsPerNote},
+                  onSelectionChanged: (s) {
+                    ref
+                        .read(noteGeneratorProvider.notifier)
+                        .setBeatsPerNote(s.first);
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],

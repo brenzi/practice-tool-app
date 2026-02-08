@@ -13,23 +13,28 @@ class NoteGeneratorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Note Generator')),
-      body: const SingleChildScrollView(
-        child: Column(
-          children: [
-            NoteDisplay(),
-            Divider(),
-            RangeSelector(),
-            SizedBox(height: 16),
-            Divider(),
-            NoteRules(),
-            SizedBox(height: 16),
-            Divider(),
-            TempoControls(),
-            SizedBox(height: 16),
-            Divider(),
-            TransportControls(),
-          ],
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  NoteDisplay(),
+                  Divider(height: 1),
+                  RangeSelector(),
+                  Divider(height: 1),
+                  NoteRules(),
+                  Divider(height: 1),
+                  TempoControls(),
+                  Divider(height: 1),
+                  TransportControls(),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
