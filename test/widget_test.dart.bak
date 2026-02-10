@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,14 +25,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    // Mock the wakelock platform channel using binary messenger
+    // Mock the wakelock platform channel
+    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMessageHandler(
-      'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
-      (ByteData? message) async {
-        return const StandardMethodCodec().encodeSuccessEnvelope(null);
-      },
-    );
+        .setMockDecodedMessageHandler<dynamic>(channel, (dynamic message) async {
+      return <String, dynamic>{};
+    });
 
     SharedPreferences.setMockInitialValues({});
     _prefs = await SharedPreferences.getInstance();
@@ -42,11 +38,9 @@ void main() {
 
   tearDown(() {
     // Clean up the mock
+    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMessageHandler(
-      'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
-      null,
-    );
+        .setMockDecodedMessageHandler<dynamic>(channel, null);
   });
 
   testWidgets('renders Note Generator tab by default', (tester) async {

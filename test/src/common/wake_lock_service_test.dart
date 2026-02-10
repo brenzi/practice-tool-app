@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jazz_practice_tools/src/common/wake_lock_service.dart';
@@ -7,23 +9,27 @@ void main() {
 
   group('WakeLockService', () {
     setUp(() async {
-      // Mock the wakelock platform channel  
-      const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
+      // Mock the wakelock platform channel using binary messenger
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockDecodedMessageHandler<dynamic>(channel, (dynamic message) async {
-        // Return an empty map as success response
-        return <String, dynamic>{};
-      });
+          .setMockMessageHandler(
+        'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+        (ByteData? message) async {
+          // Return a properly encoded empty response
+          return const StandardMethodCodec().encodeSuccessEnvelope(null);
+        },
+      );
 
       // Reset the counter and wake lock state before each test
       await WakeLockService.instance.reset();
     });
 
-    tearDown() {
+    tearDown(() {
       // Clean up the mock
-      const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockDecodedMessageHandler<dynamic>(channel, null);
+          .setMockMessageHandler(
+        'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+        null,
+      );
     });
 
     test('singleton instance returns same object', () {

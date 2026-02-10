@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,12 +34,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    // Mock the wakelock platform channel
-    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
+    // Mock the wakelock platform channel using binary messenger
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockDecodedMessageHandler<dynamic>(channel, (dynamic message) async {
-      return <String, dynamic>{};
-    });
+        .setMockMessageHandler(
+      'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+      (ByteData? message) async {
+        return const StandardMethodCodec().encodeSuccessEnvelope(null);
+      },
+    );
 
     SharedPreferences.setMockInitialValues({});
     _prefs = await SharedPreferences.getInstance();
@@ -45,9 +49,11 @@ void main() {
 
   tearDown(() {
     // Clean up the mock
-    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockDecodedMessageHandler<dynamic>(channel, null);
+        .setMockMessageHandler(
+      'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+      null,
+    );
   });
 
   testWidgets('renders metronome screen', (tester) async {
