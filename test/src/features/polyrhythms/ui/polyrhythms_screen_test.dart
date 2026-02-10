@@ -38,7 +38,7 @@ void main() {
         .setMockMessageHandler(
       'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
       (ByteData? message) async {
-        return const StandardMethodCodec().encodeSuccessEnvelope(null);
+        return const StandardMessageCodec().encodeMessage(<Object?>[null]);
       },
     );
 
@@ -82,10 +82,12 @@ void main() {
   testWidgets('play toggles to stop', (tester) async {
     await tester.pumpWidget(_buildTestApp());
     await tester.tap(find.text('Play'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(find.text('Stop'), findsOneWidget);
     await tester.tap(find.text('Stop'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(find.text('Play'), findsOneWidget);
   });
 }
