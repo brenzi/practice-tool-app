@@ -64,10 +64,12 @@ void main() {
   testWidgets('play toggles to stop', (tester) async {
     await tester.pumpWidget(_buildTestApp());
     await tester.tap(find.text('Play'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Stop'), findsOneWidget);
     await tester.tap(find.text('Stop'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Play'), findsOneWidget);
   });
 }
