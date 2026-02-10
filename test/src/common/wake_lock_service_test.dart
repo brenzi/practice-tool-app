@@ -7,27 +7,23 @@ void main() {
 
   group('WakeLockService', () {
     setUp(() async {
-      // Mock the wakelock platform channel
+      // Mock the wakelock platform channel  
+      const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        const MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle'),
-        (MethodCall methodCall) async {
-          // Mock implementation - just return success
-          return null;
-        },
-      );
+          .setMockDecodedMessageHandler<dynamic>(channel, (dynamic message) async {
+        // Return an empty map as success response
+        return <String, dynamic>{};
+      });
 
       // Reset the counter and wake lock state before each test
       await WakeLockService.instance.reset();
     });
 
-    tearDown(() {
+    tearDown() {
       // Clean up the mock
+      const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        const MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle'),
-        null,
-      );
+          .setMockDecodedMessageHandler<dynamic>(channel, null);
     });
 
     test('singleton instance returns same object', () {

@@ -26,13 +26,11 @@ void main() {
 
   setUp(() async {
     // Mock the wakelock platform channel
+    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle'),
-      (MethodCall methodCall) async {
-        return null;
-      },
-    );
+        .setMockDecodedMessageHandler<dynamic>(channel, (dynamic message) async {
+      return <String, dynamic>{};
+    });
 
     SharedPreferences.setMockInitialValues({});
     _prefs = await SharedPreferences.getInstance();
@@ -40,11 +38,9 @@ void main() {
 
   tearDown(() {
     // Clean up the mock
+    const channel = MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle'),
-      null,
-    );
+        .setMockDecodedMessageHandler<dynamic>(channel, null);
   });
 
   testWidgets('renders Note Generator tab by default', (tester) async {
