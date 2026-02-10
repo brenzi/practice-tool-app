@@ -30,7 +30,7 @@ class TrackConfig {
 
 class MixerState {
   const MixerState({
-    this.noteGenPianoVolume = _defaultVolume,
+    this.noteGenPianoVolume = 0.95,
     this.noteGenClick = _defaultClick,
     this.metronomeBeat = _defaultBeat,
     this.metronomeBar = _defaultBar,
@@ -59,22 +59,25 @@ class MixerState {
   // Woodblock E5 (key 76, channel 1) — matches ClickSound.regular
   static const _defaultClick = TrackConfig(
     soundIndex: 6, // Woodblock E5
-    volume: _defaultVolume,
+    volume: 0.50,
   );
 
-  // Same as click for metronome beat
-  static const _defaultBeat = _defaultClick;
+  // Metronome beat
+  static const _defaultBeat = TrackConfig(
+    soundIndex: 6, // Woodblock E5
+    volume: 0.80,
+  );
 
   // Woodblock F#5 (key 78, channel 1) — matches ClickSound.accent
   static const _defaultBar = TrackConfig(
     soundIndex: 7, // Woodblock F#5
-    volume: _defaultVolume,
+    volume: 0.90,
   );
 
-  // Crash Cymbal 1 (key 49, channel 2) — matches ClickSound.section
+  // Vibra Slap (key 58, channel 2)
   static const _defaultSection = TrackConfig(
-    soundIndex: 32, // Crash Cymbal 1
-    volume: _defaultVolume,
+    soundIndex: 41, // Vibra Slap
+    volume: 1.0,
   );
 
   // Woodblock E5 (key 76) — matches ClickSound.polyA
